@@ -1,0 +1,35 @@
+name: "Clean up expired container repository tags"
+
+on:
+  push:
+  schedule:
+    - cron: "0 0 * * *"
+
+jobs:
+  clean_up_tags:
+    runs-on: ubuntu-latest
+    env:
+      DO_ACCESS_TOKEN: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Set up Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.0.0'
+          bundler-cache: true
+
+      - name: Tests
+        run: bundle exec rspec
+
+      - name: Run script
+        run: bundle exec ruby main.rb
+
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+      - name: Garbage Collection api-server registry
+        run: doctl registry garbage-collection start --include-untagged-manifests -f warmango
